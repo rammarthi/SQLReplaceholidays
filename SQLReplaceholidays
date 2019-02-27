@@ -1,0 +1,52 @@
+--//////////////*************Getting Corrected date after replacing holidays and weekends with last working day****************\\\\\\\\\\\\\\\\\\\\\--
+
+Select 
+
+		CMPLT_TS
+		--,TM_DT
+		--,HLDAY_IND
+		,(
+			Case When HLDAY_IND = 'Y' then 
+		
+				(
+					Select 
+					
+							Max(Convert(Date,TM_DT)) as TM_DT
+					
+					From DRRM_DM.[dbo].[T_TM_LKUP]
+				
+					Where Convert(Date,TM_DT) <= Convert(Date,CMPLT_TS) and HLDAY_IND = 'N' and DAY_OF_WK_NUM not In (1,2)
+					
+				) else CMPLT_TS
+			
+			End
+			
+		) as CORRECTEDDT 
+		
+From
+
+(
+	Select 
+	
+		Distinct Convert(Date,CMPLT_TS) as CMPLT_TS
+		,Convert(Date,TM_DT) as TM_DT
+		,HLDAY_IND
+	
+	FROM DPA_Rpt.dbo.T_DPA_CMPLT a
+	
+	Left Join
+	
+	(
+				Select 
+		
+					[TM_DT]
+					,(Case When [DAY_OF_WK_NUM] in (1,2) then 'Y' ELSE HLDAY_IND End) as HLDAY_IND
+					,[DAY_OF_WK_NUM]
+				
+				From DRRM_DM.[dbo].[T_TM_LKUP] b
+	) c
+	on Convert(Date,a.CMPLT_TS) = Convert(Date,c.TM_DT)
+	Where Year(CMPLT_TS) = '2018'
+) d
+
+Order by d.CMPLT_TS
